@@ -1,0 +1,20 @@
+{
+  "author": "Frank Seeger <frnksgr@gmail.com>",
+  "name": "sapnwrfcw",
+  "description": "small wrapper around sapnwrfc module",
+  "version": "0.0.1",
+  "main": "saprfc.js",
+  "dependencies": {
+    "sapnwrfc": "*",
+    "async-queue": "*"
+  },
+  "devDependencies": {
+    "underscore": "*",
+    "mocha": "*",
+    "should": "*"
+  },
+  "optionalDependencies": {},
+  "engines": {
+    "node": ">= 0.6.0"
+  }
+}
