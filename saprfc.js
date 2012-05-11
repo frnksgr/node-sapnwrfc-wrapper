@@ -37,14 +37,21 @@ RFC.prototype.open = function(cb) {
 };
 
 
-RFC.prototype.close = function() {
+RFC.prototype.close = function(force) {
     if (!this._isOpen) return;
-    // close connection
-    try {
-	this.con.Close();
-    } catch (e) {/*swallow*/}
-    this._q = new queue();
-    this._isOpen = false;
+    if (!!force) {
+	console.error("not implemented yet");
+    } else {
+	var self = this;	
+	self._q.run(function(err, job) {
+	    // close connection
+	    try {
+		this.con.Close();
+	    } catch (e) {/*swallow*/}
+	});
+	this._q = new queue();
+	this._isOpen = false;
+    };
 };
 
 
