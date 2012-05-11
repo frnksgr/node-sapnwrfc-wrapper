@@ -2,7 +2,7 @@ var rfc = require("../");
 var _ = require("underscore");
 var should = require("should");
 var system;
-
+debugger
 try {
     system = require("./systems.js").default
 } catch (e) {
@@ -17,9 +17,13 @@ describe("sapnwrfcw", function() {
 	con.open(done);
     });
 
+    after(function() {
+	con.close();
+    }); 
+
     describe("saprfc()", function() {
 	it("should set some defaults", function() {
-	    rfc().should.have.property("options");
+	    rfc().should.have.property("system");
 	    var options = rfc().options;
 	    system.should.have.property("ashost");
 	    system.should.have.property("sysnr");
@@ -46,7 +50,9 @@ describe("sapnwrfcw", function() {
 
 	it("should connect on correct data", function(done) {
 	    con = rfc(system);
-	    con.open(done);
+	    (function(){
+		con.open(done);
+	    }).should.not.throw();
 	});
 	
 	it("should be open after open", function() {

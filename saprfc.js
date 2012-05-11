@@ -7,21 +7,21 @@ var queue = require ("async-queue");
 
 module.exports = rfc;
 
-function rfc(options) {
+function rfc(system) {
     // setting some defaults
-    options = options || {};
-    options.ashost = options.ashost || "localhost";
-    options.sysnr = options.sysnr || "00";
-    options.client = options.client || "100";
-    options.lang = options.lang || "EN";
-    options.user = options.user || "anzeiger";
-    options.passwd = options.passwd || "display";
-    return new RFC(options);
+    system = system || {};
+    system.ashost = system.ashost || "localhost";
+    system.sysnr = system.sysnr || "00";
+    system.client = system.client || "100";
+    system.lang = system.lang || "EN";
+    system.user = system.user || "anzeiger";
+    system.passwd = system.passwd || "display";
+    return new RFC(system);
 };
 
 
-function RFC(options) {
-    this.options = options;
+function RFC(system) {
+    this.system = system;
     this.con = new sapnwrfc.Connection()
     this._q = new queue();
     this._isOpen = false;
@@ -30,7 +30,7 @@ function RFC(options) {
 
 RFC.prototype.open = function(cb) {
     var self = this
-    this.con.Open(this.options, function(err) {
+    this.con.Open(this.system, function(err) {
 	self._isOpen = !err;
 	cb(err);
     });
