@@ -19,8 +19,8 @@ con.open(function(err) {
 
     // first call
     systemInfo({}, cb);
-    // second call
+    // second call queued
     systemInfo({}, cb);
-
+    // queued
     con.close();
 });
