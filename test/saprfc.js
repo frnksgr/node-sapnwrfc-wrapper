@@ -2,7 +2,9 @@ var rfc = require("../");
 var _ = require("underscore");
 var should = require("should");
 var system;
-debugger
+
+debugger;
+
 try {
     system = require("./systems.js").default
 } catch (e) {
@@ -55,7 +57,7 @@ describe("sapnwrfcw", function() {
 	    }).should.not.throw();
 	});
 	
-	it("should be open after open", function() {
+	it("should be open after #open()", function() {
 	    con.isOpen().should.be.true;
 	});
 	
@@ -64,18 +66,37 @@ describe("sapnwrfcw", function() {
 		con.close();
 		con.isOpen().should.be.false;
 	    });
+
+	    /*
+	    it("should call cbs with error object on forced close", function(done) {
+		con.open(function(err) {
+		    if (err) done(err);
+		    for (var count = 3; count > 0; --count) {
+			con.ping(done)
+		    }
+		    con.close(true);
+		});
+	    });
+	    */
 	});
     });
 
     describe("#lookup()", function() {
 	it("should fail on wrong func name", function() {
 	    (function() {
-		con.lookup("FOO")
+		con.lookup("FOO");
 	    }).should.throw();
 	});
 
 	it("should return wrapped function", function() {
 	    con.lookup("RFC_PING").should.be.a("function");
+	});
+
+	it("parameters should be optional", function(done) {
+	    var ping = con.lookup("RFC_PING");
+	    (function() {
+		ping(done);
+	    }).should.not.throw();
 	});
     });
 
@@ -85,6 +106,7 @@ describe("sapnwrfcw", function() {
 	});
     });
 
+
     describe("sequential calls", function(done) {
 	it("should work", function(done) {
 	    for (var count = 3; count > 0; --count) {
@@ -92,4 +114,5 @@ describe("sapnwrfcw", function() {
 	    };
 	});
     });
+
 });

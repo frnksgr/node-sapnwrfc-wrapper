@@ -40,7 +40,8 @@ RFC.prototype.open = function(cb) {
 RFC.prototype.close = function(force) {
     if (!this._isOpen) return;
     if (!!force) {
-	console.error("not implemented yet");
+	this.con.Close();
+	this._q.fail(new Error("Connection closed"));
     } else {
 	var self = this;	
 	self._q.run(function(err, job) {
@@ -64,6 +65,10 @@ RFC.prototype.lookup = function(fname) {
     var self = this;
     function wrap(f) {
 	return function(parameter, cb) {
+	    if (typeof cb === 'undefined') {
+		cb = parameter;
+		parameter = {};
+	    }
 	    self._q.run(function(err, job) {
 		f.Invoke(parameter, function(err, result) {
 		    err ? job.fail() : job.success();
