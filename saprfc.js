@@ -3,9 +3,10 @@
 // It basically adds a fifo queue to the rfc.Invoke calls.
 
 var sapnwrfc = require("sapnwrfc");
-var queue = require ("async-queue");
+var aq = require("async-queue");
 
 module.exports = rfc;
+
 
 function rfc(system) {
     // setting some defaults
@@ -23,7 +24,7 @@ function rfc(system) {
 function RFC(system) {
     this.system = system;
     this.con = new sapnwrfc.Connection()
-    this._q = new queue();
+    this._jobQueue = new aq();
     this._isOpen = false;
 };
 
@@ -37,25 +38,6 @@ RFC.prototype.open = function(cb) {
 };
 
 
-RFC.prototype.close = function(force) {
-    if (!this._isOpen) return;
-    if (!!force) {
-	this.con.Close();
-	this._q.fail(new Error("Connection closed"));
-    } else {
-	var self = this;	
-	self._q.run(function(err, job) {
-	    // close connection
-	    try {
-		this.con.Close();
-	    } catch (e) {/*swallow*/}
-	});
-	this._q = new queue();
-	this._isOpen = false;
-    };
-};
-
-
 RFC.prototype.isOpen = function() {
     return this._isOpen;
 };
@@ -63,32 +45,58 @@ RFC.prototype.isOpen = function() {
 
 RFC.prototype.lookup = function(fname) {
     var self = this;
-    function wrap(f) {
+    try {
+	var asyncRfc = this.con.Lookup(fname);
 	return function(parameter, cb) {
+	    // make parameter optional
 	    if (typeof cb === 'undefined') {
 		cb = parameter;
 		parameter = {};
 	    }
-	    self._q.run(function(err, job) {
-		f.Invoke(parameter, function(err, result) {
-		    err ? job.fail() : job.success();
-		    cb(err, result);
-		});
+	    // on call get queued
+	    self._jobQueue.run(function(err, job) {
+		if (err) {
+		    cb(err);
+		    job.fail(err);
+		} else {
+		    asyncRfc.Invoke(parameter, function(err, result) {
+			cb(err, result);
+			job.success();
+		    });
+		}
 	    });
 	}
-    }
-
-    try {
-	var f = this.con.Lookup(fname)
-	return wrap(f);
     } catch (err) {
 	throw err;
-    }    
+    }  
+};
+
+
+RFC.prototype.close = function(force) {
+    if (!this._isOpen) return;
+    if (!!force) {
+	// still a problem with an already running job
+	throw new Error("not implemented");
+	this.con.Close();
+	this._isOpen = false;
+    } else {
+	var self = this;	
+	self._jobQueue.run(function(err, job) {
+	    if (err) {
+		job.fail(err);
+	    } 
+	    if (self._isOpen) {
+		self.con.Close();
+		self._isOpen = false;
+	    }
+	    job.success();
+	});
+    }
 };
 
 
 RFC.prototype.ping = function(cb) {
     var ping = this.lookup("RFC_PING");
-    ping({}, cb);
+    ping(cb);
 };
 
