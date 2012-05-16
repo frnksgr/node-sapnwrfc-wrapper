@@ -67,17 +67,49 @@ describe("sapnwrfcw", function() {
 		con.isOpen().should.be.false;
 	    });
 
-	    /*
-	    it("should call cbs with error object on forced close", function(done) {
+	    it("should wait for pending calls", function(done) {
 		con.open(function(err) {
 		    if (err) done(err);
+		    var success = 0, failed = 0;
 		    for (var count = 3; count > 0; --count) {
-			con.ping(done)
+			con.ping(function(err, result) {
+			    if (err) {
+				++failed;
+			    }
+			    else {
+				++success;
+			    }
+			    if (failed + success === 3) {
+				failed.should.equal(0);
+				done();
+			    }
+			});
 		    }
-		    con.close(true);
+		    con.close();		    
 		});
 	    });
-	    */
+
+	    it("should stop pending calls if forced", function(done) {
+		con.open(function(err) {
+		    if (err) done(err);
+		    var success = 0, failed = 0;
+		    for (var count = 3; count > 0; --count) {
+			con.ping(function(err, result) {
+			    if (err) {
+				++failed;
+			    }
+			    else {
+				++success;
+			    }
+			    if (failed + success === 3) {
+				failed.should.equal(2);
+				done();
+			    }
+			});
+		    }
+		    con.close(true);		    
+		});
+	    });
 	});
     });
 

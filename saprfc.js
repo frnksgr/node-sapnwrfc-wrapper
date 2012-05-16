@@ -7,6 +7,13 @@ var aq = require("async-queue");
 
 module.exports = rfc;
 
+// patch async-queue
+
+aq.prototype.urgent = function(job) {
+    this.jobs.unshift(job);
+    this.run();
+}
+
 
 function rfc(system) {
     // setting some defaults
@@ -75,10 +82,17 @@ RFC.prototype.lookup = function(fname) {
 RFC.prototype.close = function(force) {
     if (!this._isOpen) return;
     if (!!force) {
-	// still a problem with an already running job
-	throw new Error("not implemented");
-	this.con.Close();
-	this._isOpen = false;
+	this._jobQueue.urgent(function(err, job) {
+	    // NOTE: an already invoked RFC call
+	    // hangs if we close the connection.
+	    this.con.Close();
+	    this._isOpen = false;
+	    if (err) {
+		job.fail(err);
+	    } else {
+		job.success();
+	    }
+	});
     } else {
 	var self = this;	
 	self._jobQueue.run(function(err, job) {
