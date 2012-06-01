@@ -5,6 +5,9 @@
 var sapnwrfc = require("sapnwrfc");
 var aq = require("async-queue");
 
+var events = require("events");
+var util = require("util");
+
 module.exports = rfc;
 
 // patch async-queue
@@ -15,42 +18,45 @@ aq.prototype.urgent = function(job) {
 }
 
 
-function rfc(system) {
+function rfc(options) {
     // setting some defaults
-    system = system || {};
-    system.ashost = system.ashost || "localhost";
-    system.sysnr = system.sysnr || "00";
-    system.client = system.client || "100";
-    system.lang = system.lang || "EN";
-    system.user = system.user || "anzeiger";
-    system.passwd = system.passwd || "display";
-    return new RFC(system);
+    options = options || {};
+    options.ashost = options.ashost || "localhost";
+    options.sysnr = options.sysnr || "00";
+    options.client = options.client || "100";
+    options.lang = options.lang || "EN";
+    options.user = options.user || "anzeiger";
+    options.passwd = options.passwd || "display";
+    return new Connection(options);
 };
 
 
-function RFC(system) {
-    this.system = system;
+function Connection(options) {
+    events.EventEmitter.call(this);
+    this.options = options;
     this.con = new sapnwrfc.Connection()
     this._jobQueue = new aq();
     this._isOpen = false;
 };
+util.inherits(Connection, events.EventEmitter);
 
 
-RFC.prototype.open = function(cb) {
+Connection.prototype.open = function(cb) {
     var self = this
-    this.con.Open(this.system, function(err) {
+    this.con.Open(this.options, function(err) {
 	self._isOpen = !err;
-	cb(err);
+	self.emit("open", err);
+	if (!!cb) cb(err);
     });
 };
 
 
-RFC.prototype.isOpen = function() {
+Connection.prototype.isOpen = function() {
     return this._isOpen;
 };
 
 
-RFC.prototype.lookup = function(fname) {
+Connection.prototype.lookup = function(fname) {
     var self = this;
     try {
 	var asyncRfc = this.con.Lookup(fname);
@@ -79,22 +85,24 @@ RFC.prototype.lookup = function(fname) {
 };
 
 
-RFC.prototype.close = function(force) {
+Connection.prototype.close = function(force) {
     if (!this._isOpen) return;
+
+    var self = this;
     if (!!force) {
 	this._jobQueue.urgent(function(err, job) {
 	    // NOTE: an already invoked RFC call
 	    // hangs if we close the connection.
-	    this.con.Close();
-	    this._isOpen = false;
+	    self.con.Close();
+	    self._isOpen = false;
 	    if (err) {
 		job.fail(err);
 	    } else {
 		job.success();
 	    }
+	    self.emit("close", err);
 	});
     } else {
-	var self = this;	
 	self._jobQueue.run(function(err, job) {
 	    if (err) {
 		job.fail(err);
@@ -104,12 +112,13 @@ RFC.prototype.close = function(force) {
 		self._isOpen = false;
 	    }
 	    job.success();
+	    self.emmit("close", err);
 	});
     }
 };
 
 
-RFC.prototype.ping = function(cb) {
+Connection.prototype.ping = function(cb) {
     var ping = this.lookup("RFC_PING");
     ping(cb);
 };

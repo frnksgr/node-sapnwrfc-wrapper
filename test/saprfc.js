@@ -25,14 +25,14 @@ describe("sapnwrfcw", function() {
 
     describe("saprfc()", function() {
 	it("should set some defaults", function() {
-	    rfc().should.have.property("system");
+	    rfc().should.have.property("options");
 	    var options = rfc().options;
-	    system.should.have.property("ashost");
-	    system.should.have.property("sysnr");
-	    system.should.have.property("client");
-	    system.should.have.property("lang");
-	    system.should.have.property("user");
-	    system.should.have.property("passwd");
+	    options.should.have.property("ashost");
+	    options.should.have.property("sysnr");
+	    options.should.have.property("client");
+	    options.should.have.property("lang");
+	    options.should.have.property("user");
+	    options.should.have.property("passwd");
 	});
     });
 
