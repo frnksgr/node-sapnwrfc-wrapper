@@ -111,7 +111,6 @@ Connection.prototype.close = function(force) {
     }
 };
 
-
 Connection.prototype.ping = function(cb) {
     var ping = this.lookup("RFC_PING");
     ping(cb);
