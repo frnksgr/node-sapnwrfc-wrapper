@@ -5,7 +5,6 @@
 var sapnwrfc = require("sapnwrfc");
 var aq = require("async-queue");
 
-var events = require("events");
 var util = require("util");
 
 module.exports = rfc;
@@ -32,21 +31,18 @@ function rfc(options) {
 
 
 function Connection(options) {
-    events.EventEmitter.call(this);
     this.options = options;
     this.con = new sapnwrfc.Connection()
     this._jobQueue = new aq();
     this._isOpen = false;
 };
-util.inherits(Connection, events.EventEmitter);
 
 
 Connection.prototype.open = function(cb) {
     var self = this
     this.con.Open(this.options, function(err) {
 	self._isOpen = !err;
-	self.emit("open", err);
-	if (!!cb) cb(err);
+	if (!!cb) return cb(err);
     });
 };
 
@@ -69,12 +65,12 @@ Connection.prototype.lookup = function(fname) {
 	    // on call get queued
 	    self._jobQueue.run(function(err, job) {
 		if (err) {
-		    cb(err);
 		    job.fail(err);
+		    return cb(err);
 		} else {
 		    asyncRfc.Invoke(parameter, function(err, result) {
-			cb(err, result);
 			job.success();
+			return cb(err, result);
 		    });
 		}
 	    });
@@ -100,7 +96,6 @@ Connection.prototype.close = function(force) {
 	    } else {
 		job.success();
 	    }
-	    self.emit("close", err);
 	});
     } else {
 	self._jobQueue.run(function(err, job) {
@@ -112,7 +107,6 @@ Connection.prototype.close = function(force) {
 		self._isOpen = false;
 	    }
 	    job.success();
-	    self.emmit("close", err);
 	});
     }
 };
