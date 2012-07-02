@@ -3,18 +3,11 @@
 // It basically adds a fifo queue to the rfc.Invoke calls.
 
 var sapnwrfc = require("sapnwrfc");
-var aq = require("async-queue");
+var async = require("async");
 
 var util = require("util");
 
 module.exports = rfc;
-
-// patch async-queue
-
-aq.prototype.urgent = function(job) {
-    this.jobs.unshift(job);
-    this.run();
-}
 
 
 function rfc(options) {
@@ -33,13 +26,15 @@ function rfc(options) {
 function Connection(options) {
     this.options = options;
     this.con = new sapnwrfc.Connection()
-    this._jobQueue = new aq();
     this._isOpen = false;
+    this._queue = async.queue(function(task, cb) {
+	task(cb);	
+    }, 1);
 };
 
 
 Connection.prototype.open = function(cb) {
-    var self = this
+    var self = this;
     this.con.Open(this.options, function(err) {
 	self._isOpen = !err;
 	if (!!cb) return cb(err);
@@ -62,17 +57,12 @@ Connection.prototype.lookup = function(fname) {
 		cb = parameter;
 		parameter = {};
 	    }
-	    // on call get queued
-	    self._jobQueue.run(function(err, job) {
-		if (err) {
-		    job.fail(err);
-		    return cb(err);
-		} else {
-		    asyncRfc.Invoke(parameter, function(err, result) {
-			job.success();
-			return cb(err, result);
-		    });
-		}
+	    // on call add task to queue
+	    self._queue.push(function(done) {
+		return asyncRfc.Invoke(parameter, function(err, data) {
+		    cb(err, data);
+		    done();
+		});
 	    });
 	}
     } catch (err) {
@@ -81,34 +71,17 @@ Connection.prototype.lookup = function(fname) {
 };
 
 
-Connection.prototype.close = function(force) {
+Connection.prototype.close = function(cb) {
     if (!this._isOpen) return;
-
     var self = this;
-    if (!!force) {
-	this._jobQueue.urgent(function(err, job) {
-	    // NOTE: an already invoked RFC call
-	    // hangs if we close the connection.
+    self._queue.push(function(done) {
+	if (self._isOpen) {
 	    self.con.Close();
 	    self._isOpen = false;
-	    if (err) {
-		job.fail(err);
-	    } else {
-		job.success();
-	    }
-	});
-    } else {
-	self._jobQueue.run(function(err, job) {
-	    if (err) {
-		job.fail(err);
-	    } 
-	    if (self._isOpen) {
-		self.con.Close();
-		self._isOpen = false;
-	    }
-	    job.success();
-	});
-    }
+	}
+	if (cb) cb();
+	done();
+    });
 };
 
 Connection.prototype.ping = function(cb) {

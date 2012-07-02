@@ -6,7 +6,7 @@
   "main": "saprfc.js",
   "dependencies": {
     "sapnwrfc": "*",
-    "async-queue": "*"
+    "async": "~0.1.22"
   },
   "devDependencies": {
     "underscore": "*",

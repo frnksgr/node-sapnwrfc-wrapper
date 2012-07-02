@@ -14,13 +14,14 @@ con.open(function(err) {
 	    console.log(err);
 	    return;
 	}
-	console.log(result);
+	console.log("success", !!result);
     }
-
     // first call
-    systemInfo({}, cb);
-    // second call queued
-    systemInfo({}, cb);
-    // queued
+    systemInfo(cb);
+    // second call
+    systemInfo(cb);
+    // finally close
     con.close();
+    // should fail
+    systemInfo(cb);
 });

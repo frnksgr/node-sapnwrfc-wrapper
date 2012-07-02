@@ -60,56 +60,30 @@ describe("sapnwrfcw", function() {
 	it("should be open after #open()", function() {
 	    con.isOpen().should.be.true;
 	});
-	
+
 	describe("#close()", function() {
-	    it("should close the connection", function() {
-		con.close();
-		con.isOpen().should.be.false;
+	    it("should close the connection", function(done) {
+		con.close(function() {
+		    con.isOpen().should.be.false;
+		    done();
+		});
 	    });
 
 	    it("should wait for pending calls", function(done) {
 		con.open(function(err) {
 		    if (err) done(err);
-		    var success = 0, failed = 0;
-		    for (var count = 3; count > 0; --count) {
+		    for (var count = 0, success = 0; count < 3; ++count) {
 			con.ping(function(err, result) {
-			    if (err) {
-				++failed;
-			    }
-			    else {
-				++success;
-			    }
-			    if (failed + success === 3) {
-				failed.should.equal(0);
-				done();
-			    }
+			    if (!err) ++success;
 			});
 		    }
-		    con.close();		    
+		    con.close(function() {
+			success.should.equal(3);
+			done();
+		    });		    
 		});
 	    });
 
-	    it("should stop pending calls if forced", function(done) {
-		con.open(function(err) {
-		    if (err) done(err);
-		    var success = 0, failed = 0;
-		    for (var count = 3; count > 0; --count) {
-			con.ping(function(err, result) {
-			    if (err) {
-				++failed;
-			    }
-			    else {
-				++success;
-			    }
-			    if (failed + success === 3) {
-				failed.should.equal(2);
-				done();
-			    }
-			});
-		    }
-		    con.close(true);		    
-		});
-	    });
 	});
     });
 
@@ -135,15 +109,6 @@ describe("sapnwrfcw", function() {
     describe("#ping()", function() {
 	it("should not fail", function(done) {
 	    con.ping(done);
-	});
-    });
-
-
-    describe("sequential calls", function(done) {
-	it("should work", function(done) {
-	    for (var count = 3; count > 0; --count) {
-		con.ping(done)
-	    };
 	});
     });
 
